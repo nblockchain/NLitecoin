@@ -1,0 +1,9 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/src/NLitecoin/obj
+/src/NLitecoin/bin
+/tests/NLitecoin.Tests/obj
+/tests/NLitecoin.Tests/bin
