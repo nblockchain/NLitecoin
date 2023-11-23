@@ -1,17 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <FileVersion>0.1.0.0</FileVersion>
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <PackageReadmeFile>ReadMe.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/nblockchain/NLitecoin</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="MimbleWimble\Types.fs" />
+    <Compile Include="MimbleWimble\EC.fs" />
+    <Compile Include="MimbleWimble\Pedersen.fs" />
+    <Compile Include="MimbleWimble\Bulletproof.fs" />
+    <Compile Include="MimbleWimble\TransactionBuilder.fs" />
+    <Compile Include="MimbleWimble\Wallet.fs" />
     <Compile Include="Litecoin.fs" />
   </ItemGroup>
 
@@ -23,7 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="NBitcoin" Version="6.0.17" />
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.2.1" />
+    <PackageReference Include="Fsdk" Version="0.6.0--date20230826-0914.git-a08d387" />
+    <PackageReference Include="NBitcoin" Version="7.0.31" />
+    <PackageReference Include="NBitcoin.Secp256k1" Version="3.1.1" />
   </ItemGroup>
 
   <ItemGroup>

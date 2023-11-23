@@ -21,7 +21,7 @@ type internal Witness(inputs: TxInList) =
                         | null -> WitScript.Empty
                         | witScript -> witScript
                     script.ToBytes()
-                stream.ReadWrite(ref bytes)
+                stream.ReadWrite bytes
             else
                 input.WitScript <- WitScript.Load stream
 
@@ -50,10 +50,14 @@ module private TxListExtensions =
 type LitecoinTransaction() = 
     inherit Transaction()
 
+    static let mwebExtensionTxFlag = 8uy
+
+    member val MimbleWimbleTransaction: Option<MimbleWimble.Transaction> = None with get, set
+
     override self.GetConsensusFactory() = LitecoinConsensusFactory.Instance
     
     member private self.Read (stream: BitcoinStream) (witSupported: bool) =
-        let flags = 0uy
+        let mutable flags = 0uy
         self.nVersion <- stream.ReadWrite self.nVersion
         // Try to read the vin. In case the dummy is there, this will be read as an empty vector.
         stream.ReadWrite(&self.vin)
@@ -64,7 +68,7 @@ type LitecoinTransaction() =
 
         if self.vin.Count = 0 && witSupported && not hasNoDummy then
             // We read a dummy or an empty vin.
-            let flags = stream.ReadWrite flags
+            flags <- stream.ReadWrite flags
             if flags <> 0uy then
                 // Assume we read a dummy and a flag.
                 stream.ReadWrite(&self.vin)
@@ -79,22 +83,20 @@ type LitecoinTransaction() =
             stream.ReadWrite(&self.vout)
             self.vout <- self.vout.WithTransaction self
             
-        let flags =
-            if ((flags &&& 1uy) <> 0uy) && witSupported then
-                // The witness flag is present, and we support witnesses.
-                let wit = Witness self.Inputs
-                wit.ReadWrite stream
-                flags ^^^ 1uy
+        if ((flags &&& 1uy) <> 0uy) && witSupported then
+            // The witness flag is present, and we support witnesses.
+            let wit = Witness self.Inputs
+            wit.ReadWrite stream
+            flags <- flags ^^^ 1uy
+        
+        if (flags &&& mwebExtensionTxFlag) <> 0uy then
+            let isMWTransactionPresent = stream.ReadWrite Unchecked.defaultof<byte>
+            if isMWTransactionPresent <> 0uy then
+                self.MimbleWimbleTransaction <- Some(MimbleWimble.Transaction.Read stream)
             else
-                flags
-        let flags =
-            if (flags &&& 8uy) <> 0uy then //MWEB extension tx flag
-                (* The MWEB flag is present, but currently no MWEB data is supported. 
-                    * This fix just prevent from throwing exception bellow so cannonical litecoin transaction can be read
-                    *)
-                flags ^^^ 8uy
-            else
-                flags
+                // HogEx transaction
+                self.MimbleWimbleTransaction <- None
+            flags <- flags ^^^ 8uy
 
         if flags <> 0uy then
             // Unknown flag in the serialization
@@ -119,6 +121,12 @@ type LitecoinTransaction() =
                 0uy
 
         let flags = 
+            if self.MimbleWimbleTransaction.IsSome then 
+                flags ||| mwebExtensionTxFlag 
+            else 
+                flags 
+
+        let flags = 
             if flags <> 0uy then
                 // Use extended format in case witnesses are to be serialized.
                 let vinDummy = TxInList()
@@ -134,6 +142,13 @@ type LitecoinTransaction() =
         if (flags &&& 1uy) <> 0uy then
             let wit = Witness self.Inputs
             wit.ReadWrite stream
+
+        match self.MimbleWimbleTransaction with
+        | Some mwebTransaction -> 
+            let valueIsPresentMarker = 1uy
+            stream.ReadWrite valueIsPresentMarker |> ignore
+            (mwebTransaction :> MimbleWimble.ISerializeable).Write stream
+        | None -> ()
 
     override self.ReadWrite(stream: BitcoinStream) =
         let witSupported = 

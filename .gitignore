@@ -7,3 +7,5 @@
 /src/NLitecoin/bin
 /tests/NLitecoin.Tests/obj
 /tests/NLitecoin.Tests/bin
+/tests/NLitecoin.MimbleWimble.Tests/obj
+/tests/NLitecoin.MimbleWimble.Tests/bin
